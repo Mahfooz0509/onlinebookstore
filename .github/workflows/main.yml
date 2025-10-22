@@ -1,4 +1,4 @@
-name: Build and Run Java Web App (No Tomcat)
+name: Build and Run Java Web App
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-run:
-    runs-on: self-hosted   # runs on your VM/laptop runner
+    runs-on: self-hosted   # runs on your laptop runner
 
     steps:
     - name: Checkout code
@@ -21,21 +21,21 @@ jobs:
 
     - name: Build WAR file
       run: |
-        echo "🧱 Building WAR package..."
+        echo "Building WAR package..."
         mvn clean package -DskipTests
 
     - name: Download Webapp Runner
       run: |
-        echo "⬇️ Downloading webapp-runner..."
+        echo "Downloading webapp-runner..."
         curl -L -o target/webapp-runner.jar \
           https://repo1.maven.org/maven2/com/github/jsimone/webapp-runner/8.0.30.2/webapp-runner-8.0.30.2.jar
 
     - name: Run the application
       run: |
-        echo "🚀 Starting the app on port 8080..."
+        echo "Starting the app on port 8080..."
         nohup java -jar target/webapp-runner.jar target/onlinebookstore.war > app.log 2>&1 &
         sleep 10
-        echo "✅ Checking application health..."
+        echo "Checking application health..."
         curl -I http://localhost:8080 || true
 
     - name: Show last 20 log lines
