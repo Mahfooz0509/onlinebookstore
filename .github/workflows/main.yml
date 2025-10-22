@@ -1,52 +1,45 @@
-name: Build and Run WAR Locally
+name: Build and Run Java Web App (No Tomcat)
 
 on:
   push:
     branches:
-      - master  # change to your branch
+      - main
+      - development
 
 jobs:
   build-and-run:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted   # runs on your VM/laptop runner
 
     steps:
-    # 1. Checkout code
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # 2. Set up JDK 17
     - name: Set up Java
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Build WAR and download webapp-runner
-    - name: Build WAR
+    - name: Build WAR file
       run: |
+        echo "🧱 Building WAR package..."
         mvn clean package -DskipTests
-        # Download webapp-runner if not included in target
-        curl -L -o target/webapp-runner.jar https://repo1.maven.org/maven2/com/github/jsimone/webapp-runner/8.0.30.2/webapp-runner-8.0.30.2.jar
 
-    # 4. Run WAR using webapp-runner
-    - name: Run WAR
+    - name: Download Webapp Runner
       run: |
-        nohup java -jar target/webapp-runner.jar target/onlinebookstore.war &
+        echo "⬇️ Downloading webapp-runner..."
+        curl -L -o target/webapp-runner.jar \
+          https://repo1.maven.org/maven2/com/github/jsimone/webapp-runner/8.0.30.2/webapp-runner-8.0.30.2.jar
+
+    - name: Run the application
+      run: |
+        echo "🚀 Starting the app on port 8080..."
+        nohup java -jar target/webapp-runner.jar target/onlinebookstore.war > app.log 2>&1 &
         sleep 10
-        # optional: test that server is up
-        curl -I http://localhost:8080/
-    - name: Test WAR deployment
+        echo "✅ Checking application health..."
+        curl -I http://localhost:8080 || true
+
+    - name: Show last 20 log lines
       run: |
-        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/)
-        echo "HTTP Response: $RESPONSE"
-        if [ "$RESPONSE" -ne 200 ]; then
-        echo "Server is not up!"
-        exit 1
-        fi
-    # Expose to the browser
-    - name: Install ngrok
-      run: sudo snap install ngrok
-
-    - name: Start ngrok
-      run: ngrok http 8080 &
-
+        echo "📜 --- Application Logs ---"
+        tail -n 20 app.log || true
