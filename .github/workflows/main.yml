@@ -3,8 +3,7 @@ name: Build and Run Java Web App (No Tomcat)
 on:
   push:
     branches:
-      - main
-      - development
+      - master
 
 jobs:
   build-and-run:
