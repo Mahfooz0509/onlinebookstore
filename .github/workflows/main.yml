@@ -43,3 +43,10 @@ jobs:
         echo "Server is not up!"
         exit 1
         fi
+    # Expose to the browser
+    - name: Install ngrok
+      run: sudo snap install ngrok
+
+    - name: Start ngrok
+      run: ngrok http 8080 &
+
