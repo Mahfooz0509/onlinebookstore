@@ -30,7 +30,7 @@ jobs:
       # Run Docker container
       - name: Run Docker container
         run: |
-          docker run -d --name onlinebookstore -p 8080:8080 onlinebookstore:latest
+          docker run -d --name onlinebookstore -p 9090:8080 onlinebookstore:latest
 
       # Verify container is running
       - name: Check running container
