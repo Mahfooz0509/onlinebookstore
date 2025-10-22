@@ -1,33 +1,44 @@
-name: Build and Run Online Bookstore
+name: Build and Run Java Web App (No Tomcat)
 
 on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 jobs:
   build-and-run:
-    runs-on: self-hosted
+    runs-on: self-hosted   # runs on your VM/laptop runner
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Build Docker image
-        run: |
-          docker build -t onlinebookstore:latest .
+    - name: Set up Java
+      uses: actions/setup-java@v3
+      with:
+        java-version: '17'
+        distribution: 'temurin'
 
-      - name: Stop old container (if running)
-        run: |
-          if [ "$(docker ps -q -f name=onlinebookstore)" ]; then
-            docker stop onlinebookstore && docker rm onlinebookstore
-          fi
+    - name: Build WAR file
+      run: |
+        echo "🧱 Building WAR package..."
+        mvn clean package -DskipTests
 
-      - name: Run Docker container
-        run: |
-          docker run -d --name onlinebookstore -p 8080:8080 onlinebookstore:latest
+    - name: Download Webapp Runner
+      run: |
+        echo "⬇️ Downloading webapp-runner..."
+        curl -L -o target/webapp-runner.jar \
+          https://repo1.maven.org/maven2/com/github/jsimone/webapp-runner/8.0.30.2/webapp-runner-8.0.30.2.jar
 
-      - name: Verify container is running
-        run: |
-          docker ps | grep onlinebookstore
+    - name: Run the application
+      run: |
+        echo "🚀 Starting the app on port 8080..."
+        nohup java -jar target/webapp-runner.jar target/onlinebookstore.war > app.log 2>&1 &
+        sleep 10
+        echo "✅ Checking application health..."
+        curl -I http://localhost:8080 || true
+
+    - name: Show last 20 log lines
+      run: |
+        echo "📜 --- Application Logs ---"
+        tail -n 20 app.log || true
