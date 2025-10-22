@@ -1,12 +1,12 @@
-name: Build and Deploy Java WAR
+name: Build and Run WAR Locally
 
 on:
   push:
     branches:
-      - master  # Change to your branch
+      - master  # change to your branch
 
 jobs:
-  build-and-deploy:
+  build-and-run:
     runs-on: ubuntu-latest
 
     steps:
@@ -14,37 +14,24 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # 2. Set up Java
-    - name: Set up JDK 17
+    # 2. Set up JDK 17
+    - name: Set up Java
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
 
-    # 3. Build WAR with Maven
+    # 3. Build WAR and download webapp-runner
     - name: Build WAR
-      run: mvn clean package -DskipTests
+      run: |
+        mvn clean package -DskipTests
+        # Download webapp-runner if not included in target
+        curl -L -o target/webapp-runner.jar https://repo1.maven.org/maven2/com/github/jsimone/webapp-runner/8.0.30.2/webapp-runner-8.0.30.2.jar
 
-    # 4. Copy WAR to remote Tomcat
-    - name: Deploy WAR to Tomcat
-      uses: appleboy/scp-action@v0.1.4
-      with:
-        host: ${{ secrets.TOMCAT_HOST }}
-        username: ${{ secrets.TOMCAT_USER }}
-        key: ${{ secrets.TOMCAT_SSH_KEY }}
-        port: ${{ secrets.TOMCAT_SSH_PORT }}
-        source: "target/onlinebookstore.war"
-        target: "/opt/tomcat/webapps/onlinebookstore.war"
-
-    # 5. Restart Tomcat
-    - name: Restart Tomcat
-      uses: appleboy/ssh-action@v0.1.6
-      with:
-        host: ${{ secrets.TOMCAT_HOST }}
-        username: ${{ secrets.TOMCAT_USER }}
-        key: ${{ secrets.TOMCAT_SSH_KEY }}
-        port: ${{ secrets.TOMCAT_SSH_PORT }}
-        script: |
-          /opt/tomcat/bin/shutdown.sh || true
-          sleep 5
-          /opt/tomcat/bin/startup.sh
+    # 4. Run WAR using webapp-runner
+    - name: Run WAR
+      run: |
+        nohup java -jar target/webapp-runner.jar target/onlinebookstore.war &
+        sleep 10
+        # optional: test that server is up
+        curl -I http://localhost:8080/
