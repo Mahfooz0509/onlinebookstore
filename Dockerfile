@@ -1,27 +1,25 @@
-# ============================
-# Step 1: Build WAR with Maven + Java 17
-# ============================
-FROM maven:3.9.6-eclipse-temurin-17 AS build
-
+# Step 1: Use Maven image to build WAR
+FROM maven:3.9.8-eclipse-temurin-17 AS builder
 WORKDIR /app
-COPY . .
 
-# Build the WAR (skip tests)
+# Copy Maven project files
+COPY pom.xml .
+COPY src ./src
+
+# Build the WAR file (skip tests for speed)
 RUN mvn clean package -DskipTests
 
-# ============================
-# Step 2: Run WAR with webapp-runner
-# ============================
-FROM eclipse-temurin:17-jre
+# Step 2: Use Tomcat to run the built WAR
+FROM tomcat:10.1-jdk17
 
-WORKDIR /app
+# Clean default webapps (optional)
+RUN rm -rf /usr/local/tomcat/webapps/*
 
-# Copy WAR and webapp-runner.jar from build stage
-COPY --from=build /app/target/dependency/webapp-runner.jar .
-COPY --from=build /app/target/onlinebookstore.war .
+# Copy your WAR file into Tomcat's webapps directory
+COPY --from=builder /app/target/*.war /usr/local/tomcat/webapps/ROOT.war
 
-# Expose port 8080
+# Expose Tomcat default port
 EXPOSE 8080
 
-# Start the app
-CMD ["java", "-jar", "webapp-runner.jar", "onlinebookstore.war"]
+# Start Tomcat
+CMD ["catalina.sh", "run"]
