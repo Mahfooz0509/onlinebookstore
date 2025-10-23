@@ -1,40 +1,29 @@
-name: Build and Deploy Java Web App to Tomcat (Docker)
+name: Build and Deploy Tomcat App
 
 on:
   push:
     branches:
+      - main
       - master
 
 jobs:
-  build-deploy:
-    runs-on: self-hosted  # You already have a self-hosted runner
+  build:
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image for Tomcat web app
-        run: |
-          docker build -t onlinebookstore-tomcat:latest .
+      - name: Build Docker image
+        run: docker build -t onlinebookstore-tomcat:latest .
 
-      - name: Stop and remove old container if exists
+      - name: Run container for test (optional)
         run: |
-          if [ "$(docker ps -aq -f name=onlinebookstore-tomcat)" ]; then
-            docker stop onlinebookstore-tomcat
-            docker rm onlinebookstore-tomcat
-          fi
-
-      - name: Run container on port 9090
-        run: |
-          docker run -d --name onlinebookstore-tomcat -p 9090:8080 onlinebookstore-tomcat:latest
-
-      - name: Verify Tomcat web app is running
-        run: |
+          docker stop test-tomcat || true
+          docker rm test-tomcat || true
+          docker run -d --name test-tomcat -p 9090:8080 onlinebookstore-tomcat:latest
           sleep 10
-          curl -I http://localhost:9090 || true
-
-      - name: Show running containers
-        run: docker ps
+          docker ps
