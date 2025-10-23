@@ -1,29 +1,43 @@
-name: Build and Deploy Tomcat App
+name: Build and Deploy OnlineBookstore
 
 on:
   push:
     branches:
-      - main
       - master
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
+  build-and-deploy:
+    runs-on: self-hosted
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      # Step 1: Checkout repo
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      # Step 2: Set up JDK 17 for Maven (if needed on runner)
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
 
+      # Step 3: Build Docker image
       - name: Build Docker image
-        run: docker build -t onlinebookstore-tomcat:latest .
-
-      - name: Run container for test (optional)
         run: |
-          docker stop test-tomcat || true
-          docker rm test-tomcat || true
-          docker run -d --name test-tomcat -p 9090:8080 onlinebookstore-tomcat:latest
-          sleep 10
-          docker ps
+          docker build -t onlinebookstore-tomcat:latest .
+
+      # Step 4: Stop and remove old container (if exists)
+      - name: Stop and remove old container
+        run: |
+          if [ $(docker ps -aq -f name=onlinebookstore-tomcat) ]; then
+            docker stop onlinebookstore-tomcat
+            docker rm onlinebookstore-tomcat
+          fi
+
+      # Step 5: Run new container
+      - name: Run Docker container
+        run: |
+          docker run -d --name onlinebookstore-tomcat -p 9090:8080 onlinebookstore-tomcat:latest
+
+      # Step 6: Show running containers
+      - name: List running containers
+        run: docker ps
