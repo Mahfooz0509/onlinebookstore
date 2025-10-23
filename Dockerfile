@@ -1,23 +1,22 @@
-# ---------- BUILD STAGE ----------
+# ---------- Stage 1: Build WAR ----------
 FROM maven:3.9.8-eclipse-temurin-17 AS builder
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
+
+# Copy everything from repo
+COPY . .
+
+# Build the WAR file (skip tests for speed)
 RUN mvn clean package -DskipTests
 
-# ---------- DEPLOY STAGE ----------
-# Use official Tomcat base image
-FROM tomcat:10.1.48-jdk17-temurin
+# ---------- Stage 2: Deploy WAR in Tomcat ----------
+FROM tomcat:9.0-jdk17
+WORKDIR /usr/local/tomcat/webapps/
 
-# Remove default ROOT webapp
-RUN rm -rf /usr/local/tomcat/webapps/*
+# Remove default ROOT app
+RUN rm -rf ROOT
 
-# Copy generated WAR from Maven target directory
-COPY target/onlinebookstore.war /usr/local/tomcat/webapps/ROOT.war
+# Copy the WAR from the build stage
+COPY --from=builder /app/target/*.war ./ROOT.war
 
-# Expose Tomcat port
 EXPOSE 8080
-
-# Start Tomcat
 CMD ["catalina.sh", "run"]
-
