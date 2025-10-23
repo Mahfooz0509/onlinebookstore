@@ -1,38 +1,40 @@
-name: Build and Deploy
+name: Build and Deploy Java Web App to Tomcat (Docker)
 
 on:
   push:
     branches:
       - master
-  workflow_dispatch:
 
 jobs:
-  build-and-run:
-    runs-on: self-hosted
+  build-deploy:
+    runs-on: self-hosted  # You already have a self-hosted runner
 
     steps:
-      # Checkout the repo
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Build Docker image
-      - name: Build Docker image
-        run: |
-          docker build -t onlinebookstore:latest .
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      # Stop old container if exists
-      - name: Stop existing container
+      - name: Build Docker image for Tomcat web app
         run: |
-          if [ "$(docker ps -q -f name=onlinebookstore)" ]; then
-            docker stop onlinebookstore && docker rm onlinebookstore
-          fi || true
+          docker build -t onlinebookstore-tomcat:latest .
 
-      # Run Docker container
-      - name: Run Docker container
+      - name: Stop and remove old container if exists
         run: |
-          docker run -d --name onlinebookstore -p 9090:8080 onlinebookstore:latest
+          if [ "$(docker ps -aq -f name=onlinebookstore-tomcat)" ]; then
+            docker stop onlinebookstore-tomcat
+            docker rm onlinebookstore-tomcat
+          fi
 
-      # Verify container is running
-      - name: Check running container
+      - name: Run container on port 9090
         run: |
-          docker ps | grep onlinebookstore
+          docker run -d --name onlinebookstore-tomcat -p 9090:8080 onlinebookstore-tomcat:latest
+
+      - name: Verify Tomcat web app is running
+        run: |
+          sleep 10
+          curl -I http://localhost:9090 || true
+
+      - name: Show running containers
+        run: docker ps
