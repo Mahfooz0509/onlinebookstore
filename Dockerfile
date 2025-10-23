@@ -6,10 +6,14 @@ COPY src ./src
 RUN mvn clean package -DskipTests
 
 # ---------- DEPLOY STAGE ----------
-FROM tomcat:10.1-jdk17
-WORKDIR /usr/local/tomcat
-RUN rm -rf webapps/*
-# Copy WAR file with its actual name
-COPY --from=builder /app/target/onlinebookstore.war webapps/onlinebookstore.war
+FROM tomcat:10.1.48-jdk17-temurin
+
+# Remove default ROOT app
+RUN rm -rf /usr/local/tomcat/webapps/*
+
+# Copy your WAR as ROOT.war
+COPY target/onlinebookstore.war /usr/local/tomcat/webapps/ROOT.war
+
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+
